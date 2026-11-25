@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>기권의 층상구조</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#1d2733;--sub:#5b6878;--line:#d5dce6;--curve:#e24b3c;
+--c1:#cfe8ff;--c2:#d9f0d6;--c3:#fff1c9;--c4:#f6d5e3;--sel:#1f6feb;}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--card:#1a232d;--text:#e8edf3;--sub:#9aa8b8;--line:#33414f;--curve:#ff7a6b;
+--c1:#1f3a54;--c2:#24402a;--c3:#4a3f1e;--c4:#4a2536;--sel:#5aa2ff;}}
+:root[data-theme="dark"]{--bg:#10161d;--card:#1a232d;--text:#e8edf3;--sub:#9aa8b8;--line:#33414f;--curve:#ff7a6b;
+--c1:#1f3a54;--c2:#24402a;--c3:#4a3f1e;--c4:#4a2536;--sel:#5aa2ff;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+padding:env(safe-area-inset-top,0px) 12px env(safe-area-inset-bottom,0px)}
+h1{font-size:1.3rem;margin:16px 0 4px}
+p.hint{margin:0 0 12px;color:var(--sub);font-size:.9rem}
+.wrap{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;align-items:start;max-width:980px;margin:0 auto}
+@media(max-width:700px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--text);font-family:inherit}
+.layer{cursor:pointer}
+.layer rect.bg{transition:opacity .2s;opacity:.85}
+.layer:hover rect.bg{opacity:1}
+.layer.active rect.bg{opacity:1;stroke:var(--sel);stroke-width:3}
+.layer .name{font-size:15px;font-weight:700}
+.axis{stroke:var(--sub);stroke-width:1.5}
+.tick{font-size:11px;fill:var(--sub)}
+.grid{stroke:var(--line);stroke-dasharray:3 3}
+.curve{fill:none;stroke:var(--curve);stroke-width:3.5;stroke-linejoin:round}
+.pause{font-size:10px;fill:var(--sub)}
+#info h2{margin:4px 0 2px;font-size:1.2rem}
+#info .range{display:inline-block;background:var(--sel);color:#fff;border-radius:99px;padding:2px 10px;font-size:.85rem;margin-bottom:8px}
+#info ul{margin:0;padding-left:20px;line-height:1.7}
+#info li{list-style:none;margin-left:-20px}
+#info .it{width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:6px 4px;border-radius:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer}
+#info .it:hover{background:var(--bg)}
+#info .it .arr{color:var(--sel);font-size:.8rem;transition:transform .2s}
+#info li.open .arr{transform:rotate(180deg)}
+#info .why{display:none;margin:2px 4px 8px;padding:8px 10px;border-left:3px solid var(--sel);background:var(--bg);border-radius:6px;font-size:.92rem;color:var(--sub);line-height:1.5}
+#info li.open .why{display:block}
+#info .tw.open .why{display:block}
+#info .trend .tgl{font-weight:400;font-size:.8rem;margin-left:8px;opacity:.9}
+#info .trend{border:0;font-family:inherit;cursor:pointer;display:block;width:fit-content;margin-top:4px;font-weight:700;font-size:.9rem;padding:5px 12px;border-radius:8px;margin-bottom:6px}
+#info .trend.up{background:var(--curve);color:#fff}
+#info .trend.down{background:var(--sel);color:#fff}
+.special{cursor:pointer}
+.special .ozb{fill:#2fa36b;fill-opacity:.4;stroke:#2fa36b;stroke-width:2;transition:fill-opacity .2s}
+.special:hover .ozb{fill-opacity:.6}
+.special.active .ozb{stroke:var(--sel);stroke-width:3.5;fill-opacity:.6}
+.special .kvis{stroke:var(--sel);stroke-width:2.5;stroke-dasharray:6 4}
+.special.active .kvis{stroke-width:4}
+.special .stxt{font-size:12px;font-weight:700}
+#info .back{margin-top:12px;background:none;border:1px solid var(--line);border-radius:8px;color:var(--sel);font:inherit;padding:6px 10px;cursor:pointer}
+.altbox{display:flex;gap:8px;align-items:center;max-width:980px;margin:0 auto 6px}
+.altbox label{font-weight:700}
+.altbox input{flex:1;min-width:0;max-width:200px;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text)}
+.altbox button{font:inherit;font-weight:700;padding:8px 14px;border:0;border-radius:8px;background:var(--sel);color:#fff;cursor:pointer}
+#altmsg{max-width:980px;margin:0 auto 10px;color:var(--curve);font-size:.9rem;min-height:1.2em}
+#info .res{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.6}
+#info .res .big{font-weight:700;font-size:1.05rem}
+#info .res .sm{color:var(--sub);font-size:.85rem}
+#info .res .go{color:var(--sel);padding:2px 0}
+.tabs{display:flex;gap:8px;max-width:980px;margin:0 auto 10px;flex-wrap:wrap}
+.tab{font:inherit;font-weight:700;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--text);cursor:pointer}
+.tab.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+.st2{cursor:pointer}
+.st2 rect{opacity:.85}
+.st2:hover rect{opacity:1}
+.st2.on rect{opacity:1;stroke:var(--sel);stroke-width:3}
+#info2 h2{margin:4px 0 2px;font-size:1.2rem}
+#info2 .range{display:inline-block;background:var(--sel);color:#fff;border-radius:99px;padding:2px 10px;font-size:.85rem;margin-bottom:8px}
+#info2 ul{margin:0;padding-left:20px;line-height:1.7}
+#info2 li{list-style:none;margin-left:-20px}
+#info2 .it{width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:6px 4px;border-radius:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer}
+#info2 .it:hover{background:var(--bg)}
+#info2 .arr{color:var(--sel);font-size:.8rem;transition:transform .2s}
+#info2 li.open .arr{transform:rotate(180deg)}
+#info2 .why{display:none;margin:2px 4px 8px;padding:8px 10px;border-left:3px solid var(--sel);background:var(--bg);border-radius:6px;font-size:.92rem;color:var(--sub);line-height:1.5}
+#info2 li.open .why{display:block}
+#info2 .plain{padding:6px 4px;display:block}
+.tbl{overflow-x:auto;max-width:980px;margin:0 auto}
+.tbl table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:.8rem}
+.tbl th:nth-child(1){width:15%}
+.tbl th:nth-child(2){width:19%}
+.tbl th:nth-child(3){width:15%}
+.tbl th:nth-child(4){width:20%}
+.tbl th,.tbl td{border:1px solid var(--line);padding:6px 5px;text-align:left;vertical-align:top;line-height:1.45;word-break:keep-all;overflow-wrap:anywhere}
+.tbl th{background:var(--bg)}
+.tbl td.nm{font-weight:700}
+@media(min-width:700px){.tbl table{font-size:.92rem}.tbl th,.tbl td{padding:8px 10px}}
+.tbl .up{color:var(--curve);font-weight:700}
+.tbl .dn{color:var(--sel);font-weight:700}
+#quiz{padding:14px;max-width:640px;margin:0 auto}
+.qmeta{color:var(--sub);font-size:.85rem}
+.qq{font-size:1.1rem;margin:6px 0 12px}
+.qopt{display:block;width:100%;text-align:left;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.qopt:not(:disabled):hover{border-color:var(--sel)}
+.qopt:disabled{color:var(--text);opacity:1;cursor:default}
+.qopt.ok{background:#2fa36b;color:#fff;border-color:#2fa36b}
+.qopt.no{background:var(--curve);color:#fff;border-color:var(--curve)}
+.qnext{font:inherit;font-weight:700;padding:8px 14px;border:0;border-radius:8px;background:var(--sel);color:#fff;cursor:pointer;margin-top:8px}
+.qex{margin:10px 0 0;padding:8px 10px;border-left:3px solid var(--sel);background:var(--bg);border-radius:6px;line-height:1.5}
+.angbtns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.ab{font:inherit;font-weight:700;padding:7px 12px;border:1px solid var(--line);border-radius:99px;background:var(--bg);color:var(--text);cursor:pointer}
+.ab.on{background:var(--sel);color:#fff;border-color:var(--sel)}
+#angInfo h3{margin:8px 0 2px;font-size:1.1rem}
+#angInfo ul{margin:4px 0 0;padding:0;list-style:none;line-height:1.7}
+#angInfo .it{width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:6px 4px;border-radius:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer}
+#angInfo .it:hover{background:var(--bg)}
+#angInfo .arr{color:var(--sel);font-size:.8rem;transition:transform .2s}
+#angInfo li.open .arr{transform:rotate(180deg)}
+#angInfo .why{display:none;margin:2px 4px 8px;padding:8px 10px;border-left:3px solid var(--sel);background:var(--bg);border-radius:6px;font-size:.92rem;color:var(--sub);line-height:1.5}
+#angInfo li.open .why{display:block}
+#angInfo .plain{padding:6px 4px;display:block}
+.tg{font:inherit;font-weight:700;padding:8px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--text);cursor:pointer}
+#info .plain{padding:6px 4px;display:block}
+#info .empty{color:var(--sub);padding:20px 8px;text-align:center}
+</style>
+</head>
+<body>
+<h1>🌍 기권의 층상구조</h1>
+<nav class="tabs"><button class="tab on" data-t="v1">기권의 층상구조</button><button class="tab" data-t="v2">우주선 재진입</button><button class="tab" data-t="v4">퀴즈</button></nav>
+<section id="v1">
+<p class="hint">고도를 입력하면 그 고도의 기권과 설명이 나와요. 그래프의 층을 눌러도 돼요.</p>
+<div class="altbox"><label for="alt">고도</label><input id="alt" type="number" inputmode="decimal" min="0" max="1000" step="any" placeholder="예: 25"><span>km</span><button id="altgo">확인</button></div>
+<div id="altmsg"></div>
+<div class="wrap">
+ <div class="card">
+  <svg viewBox="0 0 500 520" id="chart" role="img" aria-label="고도에 따른 기온 변화 그래프"></svg>
+ </div>
+ <div class="card" id="info"><div class="empty">🔎 고도를 입력하거나 층을 눌러 보세요.</div></div>
+</div>
+<div style="max-width:980px;margin:12px auto 0"><button class="tg" id="tblBtn">📋 층별 비교표 보기 ▾</button></div>
+<div id="tblBox" hidden style="margin-top:8px">
+ <p class="hint">네 개의 층을 한눈에 비교해 보세요. (위쪽 층부터)</p>
+ <div class="card tbl"><table>
+  <tr><th>층</th><th>고도</th><th>기온 변화</th><th>기상현상</th><th>대표 특징</th></tr>
+  <tr><td class="nm" style="background:var(--c4)">열권</td><td>80~1000km</td><td class="up">▲ 상승</td><td>없음</td><td>인공위성 진입, 오로라 발생, 카르만 선(우주의 경계)</td></tr>
+  <tr><td class="nm" style="background:var(--c3)">중간권</td><td>50~80km</td><td class="dn">▼ 하강</td><td>없음 (수증기 없음)</td><td>대류 현상 존재, 유성 발광</td></tr>
+  <tr><td class="nm" style="background:var(--c2)">성층권</td><td>11~50km</td><td class="up">▲ 상승</td><td>없음 (대기 안정)</td><td>오존층(20~30km), 고고도 자율 비행 드론·제트기 운항</td></tr>
+  <tr><td class="nm" style="background:var(--c1)">대류권</td><td>0~11km</td><td class="dn">▼ 하강</td><td>있음 (수증기 있음)</td><td>대기 질량의 75% 집중, 상업용 여객기 운항</td></tr>
+ </table></div>
+</div>
+</section>
+<section id="v2" hidden>
+ <p class="hint">우주선이 우주에서 지구로 돌아올 때 기권을 지나며 어떻게 될까요? 슬라이더를 움직이거나 층을 눌러 보세요.</p>
+ <div class="altbox"><label>고도</label><input id="sl" type="range" min="0" max="120" value="120" style="max-width:none;padding:0;border:0"><span id="slv" style="min-width:56px;font-weight:700">120km</span><button id="play">▶ 재진입</button></div>
+ <div class="wrap">
+  <div class="card"><svg viewBox="0 -14 320 450" id="chart2" role="img" aria-label="우주선 재진입"></svg></div>
+  <div class="card" id="info2"></div>
+ </div>
+ <div class="card" style="max-width:980px;margin:12px auto 0;padding:12px">
+  <h2 style="margin:0 0 4px;font-size:1.15rem">재진입 각도 비교</h2>
+  <p class="hint" style="margin:0 0 6px">우주선이 대기에 들어오는 각도(수평선과 이루는 각)에 따라 결과가 달라져요. 각도를 눌러 보세요.<br>※ 아폴로 우주선 기준 예시예요. 우주선마다 안전한 각도는 달라요. 그림은 이해를 돕기 위해 과장했어요.</p>
+  <div class="angbtns"><button class="ab" data-k="0">7.5° 초과</button><button class="ab on" data-k="1">약 6.5°</button><button class="ab" data-k="2">5° 미만</button></div>
+  <svg viewBox="0 0 360 200" id="angSvg" style="max-width:520px;margin:0 auto" role="img" aria-label="재진입 각도 비교"></svg>
+  <div id="angInfo"></div>
+ </div>
+</section>
+<section id="v4" hidden>
+ <div class="card" id="quiz"></div>
+</section>
+
+<script>
+const layers=[
+ {id:"thermo",trend:"up",trendWhy:"태양 복사 에너지를 직접 흡수하기 때문이에요. (공기가 매우 희박해 태양의 강한 자외선·X선을 바로 받아요.)",name:"열권",range:"80~1000km",color:"--c4",y0:80,y1:1000,
+  items:[["인공위성 진입","공기가 매우 희박해 마찰이 거의 없어서 위성이 오래 궤도를 도는 데 유리해요."],["오로라 발생","태양에서 날아온 전기를 띤 입자가 지구 극지방으로 들어와 열권의 공기와 부딪혀 빛을 내요."],{sp:"karman",text:"카르만 선(100km, 우주의 경계)"}]},
+ {id:"meso",trend:"down",trendWhy:"지구 복사 에너지로부터 멀어지기 때문이에요.",name:"중간권",range:"50~80km",color:"--c3",y0:50,y1:80,
+  items:["대류 현상 존재",["기상현상 없음","수증기가 없어서 구름·비 같은 기상현상이 일어나지 않아요."],["유성 발광","우주에서 날아온 작은 암석이 빠른 속도로 공기와 부딪혀 뜨겁게 타면서 빛을 내요. 중간권에서는 대부분 이 높이에서 타서 보이지요."]]},
+ {id:"strato",trend:"up",trendWhy:"오존층이 태양의 자외선을 흡수해 열을 내기 때문이에요.",name:"성층권",range:"11~50km",color:"--c2",y0:11,y1:50,
+  items:[{sp:"ozone",text:"오존층(20~30km)"},["대기가 안정적","위로 갈수록 기온이 높아져서 아래의 찬 공기가 위로 올라가지 못해 대류가 일어나지 않아요."],["고고도 자율 비행 드론 및 제트기 운항","대기가 안정적이라 비행하기에 좋아요."]]},
+ {id:"tropo",trend:"down",trendWhy:"지구 복사 에너지로부터 멀어지기 때문이에요.",name:"대류권",range:"0~11km",color:"--c1",y0:0,y1:11,
+  items:["대기 질량의 75% 집중",["대류 현상 및 기상현상","대류권에는 수증기가 있어서 구름·비·눈 같은 기상현상이 일어나요."],"상업용 여객기 주요 운항"]}
+];
+// 그래프 영역
+const L=60,R=480,T=20,B=480; // x: 온도, y: 고도
+const tMin=-100,tMax=100;
+const X=t=>L+(t-tMin)/(tMax-tMin)*(R-L);
+// 시각화를 위한 고도 구간 압축(구간 비율 고정): 0-11, 11-50, 50-80, 80-1000
+const bounds=[0,11,50,80,100,1000];
+const pix=[B,B-80,B-210,B-310,B-350,T]; // 각 경계의 y 픽셀
+function Y(h){
+ for(let i=0;i<5;i++){ if(h<=bounds[i+1]){const f=(h-bounds[i])/(bounds[i+1]-bounds[i]);return pix[i]+(pix[i+1]-pix[i])*f;} }
+ return T;
+}
+// 대표 온도 곡선 (고도 km, 온도 ℃)
+const pts=[[0,15],[11,-55],[20,-55],[32,-40],[50,0],[80,-90],[100,-70],[300,60],[600,90],[1000,100]];
+const s=document.getElementById('chart');
+let h='';
+// 층 배경
+layers.forEach(l=>{
+ const ya=Y(l.y1),yb=Y(l.y0);
+ h+=`<g class="layer" data-id="${l.id}" tabindex="0" role="button" aria-label="${l.name}">
+  <rect class="bg" x="${L}" y="${ya}" width="${R-L}" height="${yb-ya}" fill="var(${l.color})"/>
+  <text class="name" x="${L+10}" y="${(ya+yb)/2+5}">${l.name}</text></g>`;
+});
+// 격자 & 축
+for(let t=-100;t<=100;t+=50){h+=`<line class="grid" x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${B}"/><text class="tick" x="${X(t)}" y="${B+16}" text-anchor="middle">${t}</text>`;}
+[0,11,20,30,50,80,100,1000].forEach(a=>{h+=`<text class="tick" x="${L-6}" y="${Y(a)+4}" text-anchor="end">${a}</text>`;});
+h+=`<line class="axis" x1="${L}" y1="${B}" x2="${R}" y2="${B}"/><line class="axis" x1="${L}" y1="${T}" x2="${L}" y2="${B}"/>`;
+h+=`<text class="tick" x="${(L+R)/2}" y="${B+36}" text-anchor="middle" style="font-size:13px">온도 (℃)</text>`;
+h+=`<text class="tick" transform="translate(14 ${(T+B)/2}) rotate(-90)" text-anchor="middle" style="font-size:13px">고도 (km)</text>`;
+// 경계(계면) 점선 라벨
+[[11,"대류권계면"],[50,"성층권계면"],[80,"중간권계면"]].forEach(([a,n])=>{
+ h+=`<text class="pause" x="${R-4}" y="${Y(a)-3}" text-anchor="end">${n}</text>`;});
+// 카르만선
+h+=`<g class="special" data-sp="karman" tabindex="0" role="button" aria-label="카르만 선"><line x1="${L}" x2="${R}" y1="${Y(100)}" y2="${Y(100)}" stroke="transparent" stroke-width="14"/><line class="kvis" x1="${L}" x2="${R}" y1="${Y(100)}" y2="${Y(100)}"/>
+<text class="stxt" x="${L+6}" y="${Y(100)-6}" text-anchor="start" style="fill:var(--sel)">카르만 선 ›</text></g>`;
+// 오존층 표시
+h+=`<g class="special" data-sp="ozone" tabindex="0" role="button" aria-label="오존층"><rect class="ozb" x="${L}" y="${Y(30)}" width="${R-L}" height="${Y(20)-Y(30)}"/>`;
+h+=`<text class="stxt" x="${R-8}" y="${Y(25)+4}" text-anchor="end">오존층 (20~30km) ›</text></g>`;
+// 곡선
+h+=`<polyline class="curve" pointer-events="none" points="${pts.map(p=>X(p[1])+','+Y(p[0])).join(' ')}"/>`;
+h+='<g id="mk" pointer-events="none"></g>';
+s.innerHTML=h;
+
+const info=document.getElementById('info');
+function show(id,keep){
+ if(!keep)clearMarker();
+ const l=layers.find(x=>x.id===id);
+ document.querySelectorAll('.layer').forEach(g=>g.classList.toggle('active',g.dataset.id===id));
+ document.querySelectorAll('.special').forEach(g=>g.classList.remove('active'));
+ info.innerHTML=`<h2>${l.name}</h2><div class="tw"><button class="trend ${l.trend}">${l.trend==='up'?'▲ 고도가 높아질수록 기온 상승':'▼ 고도가 높아질수록 기온 하강'}<span class="tgl">▾</span></button><div class="why">💡 ${l.trendWhy}</div></div><span class="range">${l.range}</span><ul>${l.items.map(i=>Array.isArray(i)?`<li><button class="it"><span>${i[0]}</span><span class="arr">▼</span></button><div class="why">💡 ${i[1]}</div></li>`:typeof i==='object'?`<li><button class="it go" data-sp="${i.sp}"><span>${i.text}</span><span class="arr" style="transform:none">›</span></button></li>`:`<li><span class="plain">${i}</span></li>`).join('')}</ul><p class="hint" style="margin-top:10px">▼ 누르면 이유가 나오고, › 누르면 자세한 설명이 나와요.</p>`;
+ info.querySelectorAll('.go').forEach(b=>b.addEventListener('click',()=>showSpecial(b.dataset.sp)));
+ info.querySelectorAll('.trend').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+ info.querySelectorAll('.it').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+}
+document.querySelectorAll('.layer').forEach(g=>{
+ g.addEventListener('click',()=>show(g.dataset.id));
+ g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();show(g.dataset.id);}});
+});
+const specials={
+ ozone:{name:"오존층",range:"20~30km",back:"strato",items:["오존(O₃)이 많이 모여 있는 층이에요. (성층권 안)","태양의 해로운 자외선을 흡수해 생명체를 보호해요.","자외선을 흡수하면서 열이 나서, 성층권은 위로 갈수록 기온이 높아져요."]},
+ karman:{name:"카르만 선",range:"100km",back:"thermo",items:["대기권과 우주를 나누는 경계로, 이 높이부터를 우주로 봐요.","공기가 너무 희박해서 비행기가 뜰 수 없어요."]}
+};
+function showSpecial(id){
+ clearMarker();
+ const p=specials[id];
+ document.querySelectorAll('.layer').forEach(g=>g.classList.remove('active'));
+ document.querySelectorAll('.special').forEach(g=>g.classList.toggle('active',g.dataset.sp===id));
+ info.innerHTML=`<h2>${p.name}</h2><span class="range">${p.range}</span><ul>${p.items.map(i=>`<li><span class="plain">• ${i}</span></li>`).join('')}</ul><button class="back">← ${layers.find(x=>x.id===p.back).name}으로 돌아가기</button>`;
+ info.querySelector('.back').addEventListener('click',()=>show(p.back));
+}
+document.querySelectorAll('.special').forEach(g=>{
+ g.addEventListener('click',()=>showSpecial(g.dataset.sp));
+ g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showSpecial(g.dataset.sp);}});
+});
+function tempAt(h){for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];if(h<=b[0])return a[1]+(b[1]-a[1])*(h-a[0])/(b[0]-a[0]);}return pts[pts.length-1][1];}
+function layerAt(h){return h<11?'tropo':h<50?'strato':h<80?'meso':'thermo';}
+function clearMarker(){const m=document.getElementById('mk');if(m)m.innerHTML='';}
+function drawMarker(h,t){
+ const y=Y(h),x=X(t),flip=x>R-90;
+ document.getElementById('mk').innerHTML=`<line x1="${L}" x2="${R}" y1="${y}" y2="${y}" stroke="var(--text)" stroke-width="1.5" stroke-dasharray="2 3"/><circle cx="${x}" cy="${y}" r="7" fill="#ffd21f" stroke="var(--text)" stroke-width="2"/><text x="${flip?x-12:x+12}" y="${y-8}" text-anchor="${flip?'end':'start'}" style="font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--card);stroke-width:4px">${h}km · 약 ${Math.round(t)}℃</text>`;
+}
+const bmap={11:['대류권과 성층권의 경계(대류권계면)','성층권'],50:['성층권과 중간권의 경계(성층권계면)','중간권'],80:['중간권과 열권의 경계(중간권계면)','열권']};
+function showAlt(){
+ const msg=document.getElementById('altmsg'),raw=document.getElementById('alt').value.trim();
+ if(raw===''){msg.textContent='고도를 입력해 주세요.';return;}
+ const h=Number(raw);
+ if(!isFinite(h)||h<0){msg.textContent='0 이상의 숫자를 입력해 주세요.';return;}
+ if(h>1000){msg.textContent='';clearMarker();document.querySelectorAll('.layer,.special').forEach(g=>g.classList.remove('active'));info.innerHTML=`<div class="res"><div class="big">📍 ${h}km</div></div><h2>외권</h2><span class="range">1000km 이상</span><ul><li><span class="plain">기권을 벗어난 외권이에요.</span></li></ul>`;return;}
+ msg.textContent='';
+ const t=tempAt(h);
+ show(layerAt(h),true);
+ let n='';
+ if(bmap[h])n+=`<div>${bmap[h][0]}예요. ${bmap[h][1]}으로 보여 줄게요.</div>`;
+ if(h>=20&&h<=30)n+=`<button class="it go" data-sp="ozone"><span>오존층(20~30km)에 해당해요</span><span class="arr" style="transform:none">›</span></button>`;
+ if(h===100)n+=`<button class="it go" data-sp="karman"><span>카르만 선(100km)이에요</span><span class="arr" style="transform:none">›</span></button>`;
+ else if(h>100)n+=`<div>카르만 선(100km)보다 높아서 우주 영역이에요.</div>`;
+ info.insertAdjacentHTML('afterbegin',`<div class="res"><div class="big">📍 ${h}km</div><div>기온 약 ${Math.round(t)}℃ <span class="sm">(그래프 기준)</span></div>${n}</div>`);
+ info.querySelectorAll('.res .go').forEach(b=>b.addEventListener('click',()=>showSpecial(b.dataset.sp)));
+ drawMarker(h,t);
+}
+document.getElementById('altgo').addEventListener('click',showAlt);
+document.getElementById('alt').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showAlt();}});
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));
+ ['v1','v2','v4'].forEach(id=>{document.getElementById(id).hidden=id!==b.dataset.t;});
+}));
+const st=[
+ {n:'열권',r:'80km 이상',c:'--c4',lo:80,hi:120,mid:100,items:[['속도가 거의 줄지 않아요 (시속 약 28,000km)','공기가 매우 희박해 공기의 저항이 거의 없기 때문이에요.'],['아직 뜨겁지 않아요','부딪힐 공기 입자가 거의 없기 때문이에요.'],'속도를 줄여 지구로 내려가는 길로 들어서요. (재진입 시작)']},
+ {n:'중간권',r:'50~80km',c:'--c3',lo:50,hi:80,mid:65,items:[['공기와 부딪혀 매우 뜨거워져요 (약 1,500℃ 이상)','빠른 속도로 내려오며 공기를 누르고 마찰이 생겨 열이 나기 때문이에요. 중간권에서 가장 뜨거워져요.'],['유성처럼 빛을 내요','중간권의 유성 발광과 같은 원리예요.'],['열 차폐(방열판)가 필요해요','우주선이 타 버리지 않도록 열을 막거나 흡수하는 특수 재료로 공의 맨 앞을 덮어요.'],['통신이 잠시 끊겨요','뜨거운 주변 공기가 전기를 딘 상태가 되어 전파가 잘 통과하지 못해요.']]},
+ {n:'성층권',r:'11~50km',c:'--c2',lo:11,hi:50,mid:30,items:[['속도가 크게 줄어들어요','아래로 내려올수록 공기가 많아져 공기의 저항이 커지기 때문이에요.'],['격면 온도가 내려가기 시작해요','속도가 줄어 공기를 세게 누르지 않기 때문이에요.']]},
+ {n:'대류권',r:'0~11km',c:'--c1',lo:0,hi:11,mid:5,items:[['낙하산이 펼쳐져요','속도를 더 줄여 안전하게 내려오기 위해서예요.'],'땅이나 바다에 착륙(착수)해요.']}
+];
+const bd=[[120,10],[80,100],[50,200],[11,320],[0,400]];
+function Y2(h){for(let i=0;i<4;i++){const a=bd[i],b=bd[i+1];if(h>=b[0])return a[1]+(b[1]-a[1])*(a[0]-h)/(a[0]-b[0]);}return 400;}
+const c2=document.getElementById('chart2'),info2=document.getElementById('info2'),sl=document.getElementById('sl'),slv=document.getElementById('slv'),playB=document.getElementById('play');
+let g2='';
+st.forEach((o,i)=>{const y0=Y2(o.hi),y1=Y2(o.lo);g2+=`<g class="st2" data-i="${i}"><rect x="56" y="${y0}" width="244" height="${y1-y0}" fill="var(${o.c})"/><text x="66" y="${(y0+y1)/2+5}" font-size="15" font-weight="700">${o.n}</text></g>`;});
+[120,80,50,11,0].forEach(a=>{g2+=`<text class="tick" x="50" y="${Y2(a)+4}" text-anchor="end">${a}</text>`;});
+g2+=`<g pointer-events="none"><g id="flm"><path d="M0 -16 C-15 -30 -10 -46 0 -60 C10 -46 15 -30 0 -16Z" fill="#ff7a1a"/><path d="M0 -16 C-7 -26 -5 -34 0 -44 C5 -34 7 -26 0 -16Z" fill="#ffd21f"/></g><g id="rkt"><path d="M-8 -16 L8 -16 L15 6 L-15 6Z" fill="#e8edf3" stroke="#5b6878" stroke-width="2" stroke-linejoin="round"/><path d="M-15 6 Q0 18 15 6Z" fill="#6b4a3a" stroke="#5b6878" stroke-width="2" stroke-linejoin="round"/><circle cx="0" cy="-4" r="3.5" fill="#5aa2ff"/></g></g>`;
+c2.innerHTML=g2;
+let cur=-1,tm=null;
+function upd2(h){
+ h=Math.max(0,Math.min(120,h));
+ sl.value=h;slv.textContent=Math.round(h)+'km';
+ const i=h>=80?0:h>=50?1:h>=11?2:3,y=Y2(h);
+ const r=document.getElementById('rkt'),f=document.getElementById('flm');
+ const tr=`translate(200 ${y})`;r.setAttribute('transform',tr);f.setAttribute('transform',tr);f.style.opacity=i===1?1:0;
+ c2.querySelectorAll('.st2').forEach((g,k)=>g.classList.toggle('on',k===i));
+ if(i===cur)return;
+ cur=i;const o=st[i];
+ info2.innerHTML=`<h2>${o.n}</h2><span class="range">${o.r}</span><ul>${o.items.map(x=>Array.isArray(x)?`<li><button class="it"><span>${x[0]}</span><span class="arr">▼</span></button><div class="why">💡 ${x[1]}</div></li>`:`<li><span class="plain">${x}</span></li>`).join('')}</ul>`;
+ info2.querySelectorAll('.it').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+}
+function stopP(){if(tm){clearInterval(tm);tm=null;playB.textContent='▶ 재진입';}}
+sl.addEventListener('input',()=>{stopP();upd2(+sl.value);});
+c2.querySelectorAll('.st2').forEach(g=>g.addEventListener('click',()=>{stopP();upd2(st[+g.dataset.i].mid);}));
+playB.addEventListener('click',()=>{
+ if(tm){stopP();return;}
+ if(+sl.value<=0)upd2(120);
+ playB.textContent='⏸ 멈춤';
+ tm=setInterval(()=>{const v=+sl.value-1;if(v<=0){upd2(0);stopP();return;}upd2(v);},80);
+});
+upd2(120);
+const QB=[
+ ['고도 65km는 어느 층일까요?',['대류권','성층권','중간권','열권'],2,'중간권은 고도 50~80km 구간이에요.'],
+ ['대기 질량의 약 75%가 모여 있는 층은?',['성층권','대류권','중간권','열권'],1,'대류권(0~11km)에 대기 질량의 약 75%가 모여 있어요.'],
+ ['오로라가 나타나는 층은?',['열권','성층권','중간권','대류권'],0,'태양에서 날아온 전기를 띤 입자가 열권의 공기와 부딪혀 빛을 내요.'],
+ ['오존층이 있는 층은?',['열권','중간권','대류권','성층권'],3,'오존층은 성층권의 20~30km에 있어요.'],
+ ['대류권에서 고도가 높아질수록 기온이 내려가는 이유는?',['지구 복사 에너지로부터 멀어져서','태양에 가까워져서','오존이 열을 흡수해서','수증기가 많아져서'],0,'지표에서 나오는 지구 복사 에너지로부터 멀어지기 때문에 기온이 내려가요.'],
+ ['중간권에서 기상현상이 일어나지 않는 이유는?',['대류가 없어서','오존층이 있어서','수증기가 거의 없어서','기온이 높아서'],2,'중간권에는 대류는 있지만 수증기가 거의 없어 구름·비 같은 기상현상이 없어요.'],
+ ['성층권의 대기가 안정한 이유는?',['수증기가 많아서','위로 갈수록 기온이 높아져 대류가 일어나지 않아서','기압이 높아서','지표와 가까워서'],1,'위로 갈수록 기온이 높아져 아래의 찬 공기가 올라가지 못해 대류가 일어나지 않아요.'],
+ ['카르만 선(100km)은 무엇의 경계일까요?',['대류권과 성층권','중간권과 열권','오존층의 윗부분','대기권과 우주'],3,'카르만 선은 대기권과 우주를 나누는 경계로 정한 고도예요.'],
+ 
+ ['고도가 높아질수록 기온이 올라가는 층을 모두 고르면?',['대류권, 성층권','중간권, 열권','성층권, 열권','대류권, 중간권'],2,'성층권은 오존층이 자외선을 흡수해서, 열권은 태양 복사 에너지를 직접 흡수해서 기온이 올라가요.'],
+ ['유성이 빛을 내며 타는 모습이 나타나는 층은?',['성층권','열권','대류권','중간권'],3,'우주에서 날아온 작은 암석이 중간권에서 공기와 부딪혀 타면서 빛을 내요.']
+];
+const QA=[
+ ['우주선이 재진입할 때 가장 뜨거워지는 층은?',['열권','중간권','성층권','대류권'],1,'중간권에서 우주선이 공기와 부딪혀 압축·마찰로 가장 뜨거워져요. 그래서 열 차폐(방열판)가 필요해요.'],
+ ['열권의 기온은 매우 높지만 인공위성이 녹지 않는 이유는?',['위성이 열을 모두 반사해서','태양 복사가 약해서','공기 입자가 너무 적어 전달되는 열이 아주 적어서','열권의 실제 온도는 낮아서'],2,'열권은 공기가 극히 희박해 기온은 높아도 위성에 전달되는 열이 아주 적어요.'],
+ ['재진입 각도가 약 5° 미만으로 너무 얕을 때 일어나는 일은?',['열이 한꺼번에 생겨 타 버린다','속도가 너무 빨리 줄어 탑승자가 위험하다','낙하산이 펼쳐지지 않는다','대기에서 튕겨 나가 돌아오지 못할 수 있다'],3,'대기를 스치듯 지나가 공기와 충분히 부딪히지 못해 속도가 줄지 않고, 물수제비처럼 튕겨 나가요.'],
+ ['재진입 중 우주선과 지상의 통신이 잠시 끊기는 이유는?',['우주선이 지구 뒤편으로 돌아가서','주변 공기가 뜨거워져 전기를 띠어 전파가 잘 통과하지 못해서','중간권에 수증기가 많아서','우주선 안테나가 녹아서'],1,'우주선 주변의 뜨거운 공기가 전기를 딘 상태가 되어 전파가 잘 통과하지 못해요.'],
+ ['오로라가 주로 극지방 근처에서 나타나는 이유는?',['극지방은 태양과 가까워서','극지방의 오존층이 더 두꺼워서','전기를 띠 입자가 지구 자기장을 따라 극지방으로 들어오기 때문에','극지방에는 열권이 없어서'],2,'태양에서 온 전기를 띠 입자가 지구 자기장을 따라 극지방으로 모여 들어와 열권의 공기와 부딪혀 빛을 내요.']
+];
+let qi=0,sc=0,QZ=null,LV='';
+function renderQ(){
+ const box=document.getElementById('quiz');
+ if(!QZ){
+  box.innerHTML=`<h2 class="qq">난이도를 골라 주세요</h2><button class="qopt" data-l="0"><b>기본</b> (중3~고1) · 10문제<br><span style="color:var(--sub);font-size:.85rem">층 찾기, 특징, 기온 변화의 이유</span></button><button class="qopt" data-l="1"><b>심화</b> (고2~) · 5문제<br><span style="color:var(--sub);font-size:.85rem">교과서 밖 개념과 우주선 재진입</span></button>`;
+  box.querySelectorAll('.qopt').forEach(b=>b.onclick=()=>{const a=b.dataset.l==='1';QZ=a?QA:QB;LV=a?'심화':'기본';qi=0;sc=0;renderQ();});
+  return;
+ }
+ if(qi>=QZ.length){
+  box.innerHTML=`<h2>🎉 결과</h2><p style="font-size:1.3rem;font-weight:700">${sc} / ${QZ.length}점</p><p class="hint">${sc===QZ.length?'만점이에요!':'틀린 문제는 다시 풀어 보며 복습해 보세요.'}</p><button class="qnext" id="qre">다시 풀기</button><button class="qnext" id="qhome" style="margin-left:8px;background:var(--sub)">난이도 선택</button>`;
+  box.querySelector('#qre').onclick=()=>{qi=0;sc=0;renderQ();};box.querySelector('#qhome').onclick=()=>{QZ=null;renderQ();};return;
+ }
+ const q=QZ[qi];
+ box.innerHTML=`<div class="qmeta">${LV} · 문제 ${qi+1} / ${QZ.length}</div><h2 class="qq">${q[0]}</h2>${q[1].map((o,k)=>`<button class="qopt" data-k="${k}">${o}</button>`).join('')}<div id="qex"></div>`;
+ box.querySelectorAll('.qopt').forEach(b=>b.onclick=()=>{
+  const k=+b.dataset.k;
+  box.querySelectorAll('.qopt').forEach(x=>{x.disabled=true;if(+x.dataset.k===q[2])x.classList.add('ok');});
+  if(k===q[2])sc++;else b.classList.add('no');
+  box.querySelector('#qex').innerHTML=`<div class="qex">${k===q[2]?'⭕ 정답!':'❌ 아쉬워요.'} ${q[3]}</div><button class="qnext" id="qn">${qi+1<QZ.length?'다음 문제':'결과 보기'}</button>`;
+  box.querySelector('#qn').onclick=()=>{qi++;renderQ();};
+ });
+}
+renderQ();
+const ANG=[
+ {n:'7.5° 초과 (가파른 각도)',c:'#e24b3c',d:'M70 16 L195 140',st:[70,16,'7.5° 초과'],sum:'짧은 시간에 공기를 세게 만나 한번에 뜨거워져요.',items:[['공기와 갑자기 세게 부딪혀요','좁은 구간에서 속도를 급하게 줄여야 해서 열이 한꺼번에 많이 나기 때문이에요.'],['우주선이 타 버릴 수 있어요','열이 너무 많이 생겨 방열판이 견딜 수 있는 한계를 넘기 때문이에요.'],['탑승자가 큰 충격을 받아요','속도가 갑자기 줄어들어 몸이 받는 힘이 커지기 때문이에요.']]},
+ {n:'약 6.5° (안전 범위 5~7.5°)',c:'#2fa36b',d:'M10 50 Q130 80 235 140',st:[10,50,'약 6.5°'],sum:'대기를 알맞은 시간 동안 지나며 속도가 서서히 줄어요.',items:[['속도가 서서히 줄어들어요','공기를 적당한 시간 동안 지나며 조금씩 속도를 줄이기 때문이에요.'],['열이 견딘 수 있는 수준이에요','열이 한순간에 몰리지 않고 나뉘어 생겨 방열판이 막을 수 있어요.'],'우주선마다 안전한 각도의 범위가 정해져 있고 아주 좁아요.']},
+ {n:'5° 미만 (얕은 각도)',c:'#e0a100',d:'M10 80 Q110 110 190 130 Q270 128 345 40',st:[10,80,'5° 미만'],sum:'대기를 스치듯 지나가 충분히 느려지지 못해요.',items:[['대기에서 튀겨 나가요','공기와 충분히 부딪히지 못해 속도가 거의 줄지 않기 때문이에요. (물수제비처럼 튀겨 나가요.)'],['지구로 돌아오지 못할 수 있어요','다시 우주 공간으로 나가면 돌아오기 어려워요.']]}
+];
+const ASV=document.getElementById('angSvg'),AI=document.getElementById('angInfo');
+function showAng(k){
+ document.querySelectorAll('.ab').forEach(b=>b.classList.toggle('on',+b.dataset.k===k));
+ let g='<path d="M0 170 Q180 120 360 170 L360 200 L0 200Z" fill="#2f6fb5" fill-opacity=".85"/><path d="M0 150 Q180 100 360 150 L360 170 Q180 120 0 170Z" fill="var(--c1)"/><text x="180" y="190" font-size="12" text-anchor="middle" style="fill:#fff">지구</text><text x="300" y="152" font-size="11" text-anchor="middle">대기</text>';
+ ANG.forEach((a,i)=>{const on=i===k;if(!on)return;g+=`<path d="${a.d}" fill="none" stroke="${a.c}" stroke-width="${on?4:2.5}" stroke-linecap="round" opacity="${on?1:.3}"/><text x="${a.st[0]+4}" y="${a.st[1]-6}" font-size="11" style="opacity:${on?1:.45};paint-order:stroke;stroke:var(--card);stroke-width:3px">${a.st[2]}</text>`;});
+ if(k===0)g+='<circle cx="195" cy="140" r="9" fill="#ff7a1a"/><circle cx="195" cy="140" r="5" fill="#ffd21f"/>';
+ if(k===1)g+='<circle cx="235" cy="140" r="8" fill="#2fa36b"/>';
+ if(k===2)g+='<polygon points="351,32 335,36 346,50" fill="#e0a100"/>';
+ ASV.innerHTML=g;
+ const a=ANG[k];
+ AI.innerHTML=`<h3>${a.n}</h3><p class="hint" style="margin:0 0 4px">${a.sum}</p><ul>${a.items.map(x=>Array.isArray(x)?`<li><button class="it"><span>${x[0]}</span><span class="arr">▼</span></button><div class="why">💡 ${x[1]}</div></li>`:`<li><span class="plain">${x}</span></li>`).join('')}</ul>`;
+ AI.querySelectorAll('.it').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+}
+document.querySelectorAll('.ab').forEach(b=>b.addEventListener('click',()=>showAng(+b.dataset.k)));
+showAng(1);
+document.getElementById('tblBtn').addEventListener('click',()=>{
+ const b=document.getElementById('tblBox'),btn=document.getElementById('tblBtn');
+ b.hidden=!b.hidden;btn.textContent=b.hidden?'📋 층별 비교표 보기 ▾':'📋 층별 비교표 닫기 ▴';
+});
+</script>
+</body>
+</html>
